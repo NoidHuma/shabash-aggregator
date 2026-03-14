@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.db.database import Base
-from app.models.raw_post import RawPost
 from app.core.config import settings
 
 
