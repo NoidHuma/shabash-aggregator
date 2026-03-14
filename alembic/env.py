@@ -8,6 +8,13 @@ from alembic import context
 
 from app.db.database import Base
 from app.core.config import settings
+from app.models.posts import Post
+from app.models.posts_details_tg import PostDetailsTG
+from app.models.posts_details_vk import PostDetailsVK
+from app.models.attachments import Attachment
+from app.models.post_attributes import PostAttributes
+from app.models.chats_tg import ChatTG
+from app.models.groups_vk import GroupVK
 
 
 config = context.config
