@@ -24,3 +24,6 @@ class VKScraper:
 
             if not text:
                 continue
+
+            if post.get("marked_as_ads") == 1:
+                continue
