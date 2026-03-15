@@ -1,0 +1,1 @@
+# app/modules/vk_scraper/mapper.py
