@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     redis_host: str
     redis_port: int
 
+    # VK
+    vk_token: str
+
     class Config:
         env_file = ".env"
 

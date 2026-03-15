@@ -1,13 +1,17 @@
 # app/modules/vk_scraper/vk_client.py
 
+import httpx
+
+from app.core.config import settings
+from app.modules.vk_scraper.settings import VK_API_VERSION
+
 
 class VKClient:
     """
     Клиент для работы с VK API.
-
-    На текущем этапе это только интерфейс.
-    Реальная работа с API будет добавлена позже.
     """
+
+    BASE_URL = "https://api.vk.com/method"
 
     async def get_latest_posts(
         self,
@@ -16,39 +20,36 @@ class VKClient:
     ) -> list[dict]:
         """
         Получить последние посты сообщества.
-
-        Parameters
-        ----------
-        owner_id
-            ID сообщества.
-
-        count
-            Сколько постов получить.
-
-        Returns
-        -------
-        list[dict]
-            Список постов VK API.
         """
 
-        raise NotImplementedError
+        params = {
+            "owner_id": owner_id,
+            "count": count,
+            "access_token": settings.vk_token,
+            "v": VK_API_VERSION,
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.BASE_URL}/wall.get",
+                params=params,
+            )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        if "error" in data:
+            raise RuntimeError(data["error"])
+
+        return data["response"]["items"]
 
     async def get_group_info(
         self,
         owner_id: int,
     ) -> dict:
         """
-        Получить информацию о сообществе.
-
-        Parameters
-        ----------
-        owner_id
-            ID сообщества.
-
-        Returns
-        -------
-        dict
-            Данные сообщества.
+        Будет реализовано позже.
         """
 
         raise NotImplementedError
