@@ -38,3 +38,8 @@ class ChatTG(Base):
         nullable=False,
         default=True
     )
+
+    last_seen_message_id = mapped_column(
+        BigInteger,
+        nullable=True
+    )

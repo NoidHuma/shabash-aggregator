@@ -38,3 +38,8 @@ class GroupVK(Base):
         nullable=False,
         default=True
     )
+
+    last_seen_post_id = mapped_column(
+        BigInteger,
+        nullable=True
+    )
