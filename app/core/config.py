@@ -18,6 +18,15 @@ class Settings(BaseSettings):
 
     # VK
     vk_token: str
+    vk_poll_interval: int = 60
+    vk_posts_per_request: int = 50
+    # Глобальный троттлинг запросов к VK API (лимит ~3 req/s на приложение).
+    vk_requests_per_second: float = 3.0
+    # Сколько раз повторить запрос при ошибке лимита (error_code 6) или
+    # сетевом сбое (таймаут/обрыв соединения).
+    vk_max_retries: int = 3
+    # Таймаут одного HTTP-запроса к VK API, секунды.
+    vk_request_timeout: float = 10.0
 
     class Config:
         env_file = ".env"

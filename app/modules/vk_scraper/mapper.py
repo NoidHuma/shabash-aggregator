@@ -141,7 +141,9 @@ def get_owner_id(
     if owner_id is not None:
         return int(owner_id)
 
-    return -int(group.group_id)
+    # group_id хранится уже как отрицательный owner_id сообщества
+    # (например, -167102108), поэтому используется как есть.
+    return int(group.group_id)
 
 
 def get_from_id(

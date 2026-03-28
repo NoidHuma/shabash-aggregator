@@ -61,3 +61,17 @@ class GroupsRepository:
         )
 
         await session.execute(stmt)
+
+    async def deactivate(
+        self,
+        session,
+        group_id: int,
+    ) -> None:
+
+        stmt = (
+            update(GroupVK)
+            .where(GroupVK.group_id == group_id)
+            .values(is_active=False)
+        )
+
+        await session.execute(stmt)
