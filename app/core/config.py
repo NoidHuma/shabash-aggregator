@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     redis_host: str
     redis_port: int
 
+    # Telegram (client API через Telethon)
+    tg_api_id: int
+    tg_api_hash: str
+    tg_session_name: str = "tg_scraper"
+    tg_poll_interval: int = 60
+    tg_messages_per_request: int = 50
+    # Порог, до которого Telethon сам пережидает FloodWait (секунды).
+    tg_flood_sleep_threshold: int = 60
+
     # VK
     vk_token: str
     vk_poll_interval: int = 60
