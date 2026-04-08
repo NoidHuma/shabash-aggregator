@@ -180,3 +180,7 @@ local/
 # Telethon session files (grant access to the account — must never be committed)
 *.session
 *.session-journal
+
+# Trained ML model artifacts
+models/
+*.joblib

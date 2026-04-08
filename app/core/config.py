@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Порог, до которого Telethon сам пережидает FloodWait (секунды).
     tg_flood_sleep_threshold: int = 60
 
+    # ML (фильтр релевантности)
+    ml_model_path: str = "models/relevance_clf.joblib"
+
     # VK
     vk_token: str
     vk_poll_interval: int = 60
