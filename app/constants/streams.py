@@ -10,3 +10,4 @@ PREPARED_POSTS_STREAM = "prepared_posts"
 # Consumer groups (по одной на этап-читатель потока).
 COARSE_FILTER_GROUP = "coarse_filter"
 ML_FILTER_GROUP = "ml_filter"
+ATTRIBUTE_EXTRACTOR_GROUP = "attribute_extractor"

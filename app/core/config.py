@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     # ML (фильтр релевантности)
     ml_model_path: str = "models/relevance_clf.joblib"
 
+    # LLM (извлечение атрибутов). OpenAI-совместимый API (по умолчанию OpenRouter).
+    llm_api_key: str = ""
+    llm_base_url: str = "https://openrouter.ai/api/v1"
+    llm_model: str = "qwen/qwen3-next-80b-a3b-instruct:free"
+    llm_timeout: float = 30.0
+    llm_max_retries: int = 3
+    # Если False — используется заглушка (UNKNOWN/None), без обращений к LLM.
+    llm_enabled: bool = False
+
     # VK
     vk_token: str
     vk_poll_interval: int = 60

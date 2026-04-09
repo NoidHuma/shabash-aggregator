@@ -9,4 +9,6 @@ class DurationType(Enum):
 
     SHORT_TASK = "short_task"
 
+    VAHTA = "vahta"
+
     UNKNOWN = "unknown"
