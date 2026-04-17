@@ -1,8 +1,6 @@
 import csv
 from dataclasses import dataclass
 
-from app.modules.coarse_filter.filter import MIN_TEXT_LENGTH
-
 
 @dataclass
 class Sample:
@@ -15,7 +13,7 @@ class Sample:
 
 def load_samples(
     path: str,
-    min_length: int = MIN_TEXT_LENGTH,
+    min_length: int = 30,
 ) -> list[Sample]:
     """
     Загружает размеченные примеры из CSV.

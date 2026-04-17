@@ -10,7 +10,7 @@ from app.core.logging import setup_logging
 from app.core.redis import redis_client
 from app.db.database import SessionLocal
 from app.enums.post_status import PostStatus
-from app.ml.classifier import RelevanceClassifier
+from app.modules.ml_filter.classifier import RelevanceClassifier
 from app.repositories.posts_repository import PostsRepository
 from app.services.stream_service import StreamPostMessage
 from app.services.stream_service import StreamService

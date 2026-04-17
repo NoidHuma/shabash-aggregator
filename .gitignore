@@ -184,3 +184,5 @@ local/
 # Trained ML model artifacts
 models/
 *.joblib
+
+scripts/

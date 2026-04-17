@@ -18,11 +18,9 @@ from sklearn.pipeline import FeatureUnion
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 
-from app.core.config import settings
-from app.ml.classifier import save_classifier
-from app.ml.data import load_samples
-from app.ml.preprocessing import clean_text
-from app.modules.coarse_filter.filter import MIN_TEXT_LENGTH
+from ml.save_classifier import save_classifier
+from ml.data import load_samples
+from ml.preprocessing import clean_text
 
 
 CANDIDATES = ["logreg", "svm", "nb"]
@@ -119,7 +117,7 @@ def tune_threshold(texts, y, name, c, folds, jobs, target_precision):
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train the relevance classifier.")
     parser.add_argument("--train", default="data/dataset/train.csv")
-    parser.add_argument("--out", default=settings.ml_model_path)
+    parser.add_argument("--out", default="models/relevance_clf.joblib")
     parser.add_argument("--model", choices=CANDIDATES, default="logreg")
     parser.add_argument("--C", type=float, default=1.0, help="Сила регуляризации (logreg/svm)")
     parser.add_argument("--folds", type=int, default=5)
@@ -165,7 +163,7 @@ def main() -> None:
         "model": args.model,
         "C": args.C,
         "threshold": threshold,
-        "min_text_length": MIN_TEXT_LENGTH,
+        "min_text_length": 30,
         "sklearn_version": sklearn.__version__,
         "python_version": platform.python_version(),
     }

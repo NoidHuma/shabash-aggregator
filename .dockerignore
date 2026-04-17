@@ -7,8 +7,8 @@ __pycache__
 local/
 data/
 tests/
+ml/
 *.session
 *.session-journal
-backfill.log
 .env
 README.md
