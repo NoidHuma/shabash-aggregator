@@ -34,8 +34,27 @@ class Settings(BaseSettings):
     llm_model: str = "qwen/qwen3-next-80b-a3b-instruct:free"
     llm_timeout: float = 30.0
     llm_max_retries: int = 3
+    # Глобальный троттлинг запросов к LLM (лимит провайдера по запросам/сек).
+    # Напр. 0.38 = не чаще 1 запроса раз в ~2.63 секунды.
+    llm_requests_per_second: float = 0.38
     # Если False — используется заглушка (UNKNOWN/None), без обращений к LLM.
     llm_enabled: bool = False
+
+    # Публикаторы (агрегирующие каналы)
+    # VK-сообщество, куда постим (положительный id) + токен с правом wall+photos.
+    vk_publish_group_id: int = 0
+    vk_publish_token: str = ""
+    # Telegram-канал (id вида -100... или @username) + токен бота-админа.
+    tg_channel: str = ""
+    tg_bot_token: str = ""
+    # Пауза между публикациями (троттлинг под лимиты VK/Telegram), секунды.
+    publish_min_interval: float = 1.0
+
+    # Персональные боты (рассылка по пользовательским фильтрам)
+    # TG-бот для личных сообщений (отдельный от канального).
+    tg_bot_dispatch_token: str = ""
+    # Заглушка телефона поддержки (пока фейк).
+    bot_support_phone: str = "+7 (900) 123-45-67"
 
     # VK
     vk_token: str

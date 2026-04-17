@@ -1,5 +1,6 @@
 import json
 import logging
+import threading
 import time
 
 from openai import OpenAI
@@ -28,6 +29,7 @@ class LLMClient:
         model: str = settings.llm_model,
         timeout: float = settings.llm_timeout,
         max_retries: int = settings.llm_max_retries,
+        requests_per_second: float = settings.llm_requests_per_second,
     ) -> None:
         if not api_key:
             raise RuntimeError("LLM_API_KEY не задан — заполни .env")
@@ -36,6 +38,21 @@ class LLMClient:
         self._max_retries = max_retries
         # max_retries=0: свои повторы делаем сами (ниже), чтобы покрыть и JSON-сбои.
         self._client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=0)
+
+        # Троттлинг: не чаще requests_per_second запросов в секунду.
+        self._min_interval = 1.0 / requests_per_second if requests_per_second > 0 else 0.0
+        self._throttle_lock = threading.Lock()
+        self._last_request_at = 0.0
+
+    def _throttle(self) -> None:
+        """Выдерживает паузу под локом, чтобы соблюсти лимит запросов/сек."""
+        if self._min_interval <= 0:
+            return
+        with self._throttle_lock:
+            wait = self._min_interval - (time.monotonic() - self._last_request_at)
+            if wait > 0:
+                time.sleep(wait)
+            self._last_request_at = time.monotonic()
 
     def _build_messages(self, text: str) -> list[dict]:
         messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -52,6 +69,7 @@ class LLMClient:
 
         for attempt in range(self._max_retries + 1):
             try:
+                self._throttle()
                 response = self._client.chat.completions.create(
                     model=self._model,
                     messages=messages,

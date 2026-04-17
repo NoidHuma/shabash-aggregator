@@ -1,39 +1,124 @@
-version: '3.9'
+# Полный стек: инфраструктура (PostgreSQL, Redis) + все воркеры конвейера.
+# Запуск:  docker compose up -d --build
+#
+# Порядок старта: postgres/redis -> migrate (миграции) -> seed (пере-сидинг
+# курсоров на «сейчас», чтобы после простоя не было всплеска старых заявок)
+# -> воркеры. Каждый воркер — отдельный сервис с авто-перезапуском.
+
+x-base: &base
+  build: .
+  image: shabash-aggregator
+  env_file: .env
+  environment:
+    POSTGRES_HOST: postgres
+    REDIS_HOST: redis
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+
+x-worker: &worker
+  <<: *base
+  restart: unless-stopped
+  depends_on:
+    seed:
+      condition: service_completed_successfully
 
 services:
-
   postgres:
     image: postgres:16
-
     container_name: jobs_postgres
-
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-
+    # Порт доступен только с самого сервера (localhost), не из интернета.
+    # Воркерам он не нужен — они ходят к postgres по внутренней сети Docker.
     ports:
-      - "5432:5432"
-
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
-
 
   redis:
     image: redis:7
-
     container_name: jobs_redis
-
+    # Только localhost сервера, не наружу (Redis по умолчанию без пароля).
     ports:
-      - "6379:6379"
-
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
-
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
 
+  # Одноразово: применяет миграции схемы БД.
+  migrate:
+    <<: *base
+    command: python -m alembic upgrade head
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Одноразово: ставит курсоры last_seen на текущий последний пост/сообщение,
+  # чтобы конвейер брал только новые заявки (без нагона старых после простоя).
+  seed:
+    <<: *base
+    command: python -m app.workers.seed_cursors --all
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./tg_scraper.session:/app/tg_scraper.session
+
+  vk_scraper:
+    <<: *worker
+    command: python -m app.workers.vk_scraper_worker
+
+  tg_scraper:
+    <<: *worker
+    command: python -m app.workers.tg_scraper_worker
+    volumes:
+      - ./tg_scraper.session:/app/tg_scraper.session
+
+  coarse_filter:
+    <<: *worker
+    command: python -m app.workers.coarse_filter_worker
+
+  ml_filter:
+    <<: *worker
+    command: python -m app.workers.ml_filter_worker
+    volumes:
+      - ./models:/app/models:ro
+
+  attribute_extractor:
+    <<: *worker
+    command: python -m app.workers.attribute_extractor_worker
+
+  vk_group_publisher:
+    <<: *worker
+    command: python -m app.workers.vk_group_publisher_worker
+
+  tg_channel_publisher:
+    <<: *worker
+    command: python -m app.workers.tg_channel_publisher_worker
+
+  vk_bot:
+    <<: *worker
+    command: python -m app.workers.vk_bot_worker
+
+  tg_bot:
+    <<: *worker
+    command: python -m app.workers.tg_bot_worker
 
 volumes:
   postgres_data:

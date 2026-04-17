@@ -46,6 +46,13 @@ class CoarseFilterWorker:
         )
 
         while True:
+            for message in await self._stream_service.claim_stale_posts(
+                stream=self._input_stream,
+                group=self._group,
+                consumer=self._consumer,
+            ):
+                await self._handle_message(message)
+
             messages = await self._stream_service.read_posts(
                 stream=self._input_stream,
                 group=self._group,

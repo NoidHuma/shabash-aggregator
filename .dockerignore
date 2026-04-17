@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+local/
+data/
+tests/
+*.session
+*.session-journal
+backfill.log
+.env
+README.md
