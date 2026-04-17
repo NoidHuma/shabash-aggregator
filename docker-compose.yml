@@ -70,7 +70,7 @@ services:
   # чтобы конвейер брал только новые заявки (без нагона старых после простоя).
   seed:
     <<: *base
-    command: python -m app.workers.seed_cursors --all
+    command: python -m app.utils.seed_cursors --all
     restart: "no"
     depends_on:
       migrate:
