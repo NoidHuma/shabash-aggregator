@@ -41,9 +41,13 @@ class Settings(BaseSettings):
     llm_enabled: bool = False
 
     # Публикаторы (агрегирующие каналы)
-    # VK-сообщество, куда постим (положительный id) + токен с правом wall+photos.
+    # VK-сообщество, куда постим (положительный id) + токен сообщества (wall.post).
     vk_publish_group_id: int = 0
     vk_publish_token: str = ""
+    # Токен ПОЛЬЗОВАТЕЛЯ-админа (scope photos,wall,groups). Нужен, чтобы грузить
+    # фото на стену сообщества: photos.getWallUploadServer токену сообщества
+    # недоступен. Если пусто — посты публикуются без фото.
+    vk_publish_user_token: str = ""
     # Telegram-канал (id вида -100... или @username) + токен бота-админа.
     tg_channel: str = ""
     tg_bot_token: str = ""

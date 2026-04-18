@@ -90,6 +90,10 @@ class VKBotClient:
         vk_kb = to_vk_keyboard(keyboard)
         if vk_kb is not None:
             params["keyboard"] = json.dumps(vk_kb, ensure_ascii=False)
+        else:
+            # Сообщение без inline-кнопок: заодно убираем «прилипшую» снизу
+            # обычную клавиатуру (могла остаться от старой версии бота).
+            params["keyboard"] = json.dumps({"buttons": [], "one_time": True})
         await self._api("messages.send", params)
 
     async def edit_message(
