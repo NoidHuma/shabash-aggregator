@@ -181,8 +181,8 @@ local/
 *.session
 *.session-journal
 
-# Trained ML model artifacts
-models/
+# Trained ML model artifacts (только корневая папка, не app/models/)
+/models/
 *.joblib
 
 scripts/
