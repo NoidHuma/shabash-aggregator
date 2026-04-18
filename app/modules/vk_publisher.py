@@ -57,10 +57,15 @@ class VKPublisherClient:
             "from_group": 1,
             "message": message,
         }
+        # Если фото залиты пользовательским токеном — постим тем же токеном,
+        # иначе VK молча отбрасывает вложение, загруженное «другим» токеном.
+        post_token = self._token
         if attachments:
             params["attachments"] = ",".join(attachments)
+            post_token = self._photo_token
+            logger.info("VK: прикрепляю вложения: %s", params["attachments"])
 
-        await self._api("wall.post", params)
+        await self._api("wall.post", params, token=post_token)
 
     async def _upload_photo(self, url: str) -> str:
         upload = await self._api(
@@ -92,6 +97,7 @@ class VKPublisherClient:
             token=self._photo_token,
         )
         item = saved[0]
+        logger.info("VK: фото сохранено owner_id=%s id=%s", item["owner_id"], item["id"])
         return f"photo{item['owner_id']}_{item['id']}"
 
     async def _api(self, method: str, params: dict, token: str | None = None) -> dict:
