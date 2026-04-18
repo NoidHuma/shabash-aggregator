@@ -68,23 +68,36 @@ class VKPublisherClient:
         await self._api("wall.post", params, token=post_token)
 
     async def _upload_photo(self, url: str) -> str:
-        upload = await self._api(
-            "photos.getWallUploadServer", {"group_id": self._group_id}, token=self._photo_token
-        )
-        upload_url = upload["upload_url"]
-
         async with httpx.AsyncClient(timeout=self._timeout, follow_redirects=True) as client:
             image = await client.get(url)
             image.raise_for_status()
+            image_bytes = image.content
 
-            uploaded = await client.post(
-                upload_url,
-                files={"photo": ("photo.jpg", image.content, "image/jpeg")},
-            )
-        result = uploaded.json()
+        # Сервер загрузки VK периодически отвечает 5xx/пустым телом — повторяем.
+        result: dict | None = None
+        last_error: Exception | None = None
+        for attempt in range(1, 4):
+            try:
+                upload = await self._api(
+                    "photos.getWallUploadServer", {"group_id": self._group_id}, token=self._photo_token
+                )
+                async with httpx.AsyncClient(timeout=self._timeout) as client:
+                    uploaded = await client.post(
+                        upload["upload_url"],
+                        files={"photo": ("photo.jpg", image_bytes, "image/jpeg")},
+                    )
+                uploaded.raise_for_status()
+                result = uploaded.json()
+                if result.get("photo") and result.get("photo") != "[]":
+                    break
+                last_error = RuntimeError(f"VK upload вернул пустое фото: {result}")
+            except Exception as error:  # noqa: BLE001 — ретраим любые сетевые/5xx сбои
+                last_error = error
+            logger.warning("VK: загрузка фото, попытка %d не удалась: %s", attempt, last_error)
+            result = None
 
-        if not result.get("photo") or result.get("photo") == "[]":
-            raise RuntimeError(f"VK upload вернул пустое фото: {result}")
+        if not result:
+            raise RuntimeError(f"VK upload не удался после 3 попыток: {last_error}")
 
         saved = await self._api(
             "photos.saveWallPhoto",
