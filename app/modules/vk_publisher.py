@@ -38,8 +38,10 @@ class VKPublisherClient:
         for url in photo_urls:
             try:
                 attachments.append(await self._upload_photo(url))
-            except Exception:
-                logger.exception("VK: не удалось перезалить фото %s — пропускаю", url)
+            except Exception as error:
+                # Логируем конкретную причину (часто это права токена на
+                # photos.getWallUploadServer/saveWallPhoto или истёкший URL).
+                logger.warning("VK: фото не прикреплено (%s): %s", url, error)
 
         params = {
             "owner_id": -self._group_id,
@@ -55,7 +57,7 @@ class VKPublisherClient:
         upload = await self._api("photos.getWallUploadServer", {"group_id": self._group_id})
         upload_url = upload["upload_url"]
 
-        async with httpx.AsyncClient(timeout=self._timeout) as client:
+        async with httpx.AsyncClient(timeout=self._timeout, follow_redirects=True) as client:
             image = await client.get(url)
             image.raise_for_status()
 

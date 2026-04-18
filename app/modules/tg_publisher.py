@@ -35,13 +35,13 @@ class TGPublisherClient:
 
     async def publish(self, text: str, photo_urls: list[str]) -> None:
         # Текст часто длиннее лимита подписи к фото (1024), поэтому шлём его
-        # отдельным сообщением, а фото — альбомом/одиночным фото.
-        await self._send_text(text)
+        # отдельным сообщением, а фото — ОТВЕТОМ на это сообщение (привязка).
+        sent = await self._send_text(text)
         if photo_urls:
-            await self._send_photos(photo_urls)
+            await self._send_photos(photo_urls, reply_to=sent.get("message_id"))
 
-    async def _send_text(self, text: str) -> None:
-        await self._call(
+    async def _send_text(self, text: str) -> dict:
+        return await self._call(
             "sendMessage",
             {
                 "chat_id": self._chat_id,
@@ -50,16 +50,19 @@ class TGPublisherClient:
             },
         )
 
-    async def _send_photos(self, photo_urls: list[str]) -> None:
+    async def _send_photos(self, photo_urls: list[str], reply_to: int | None = None) -> None:
         urls = photo_urls[:TG_MAX_MEDIA]
+        reply = json.dumps({"message_id": reply_to}) if reply_to else None
         if len(urls) == 1:
-            await self._call("sendPhoto", {"chat_id": self._chat_id, "photo": urls[0]})
+            data = {"chat_id": self._chat_id, "photo": urls[0]}
+            if reply:
+                data["reply_parameters"] = reply
+            await self._call("sendPhoto", data)
         else:
-            media = [{"type": "photo", "media": url} for url in urls]
-            await self._call(
-                "sendMediaGroup",
-                {"chat_id": self._chat_id, "media": json.dumps(media)},
-            )
+            data = {"chat_id": self._chat_id, "media": json.dumps([{"type": "photo", "media": url} for url in urls])}
+            if reply:
+                data["reply_parameters"] = reply
+            await self._call("sendMediaGroup", data)
 
     async def _call(self, method: str, data: dict) -> dict:
         for attempt in range(self._max_retries + 1):

@@ -8,7 +8,8 @@ from app.core.logging import setup_logging
 from app.core.redis import redis_client
 from app.db.database import SessionLocal
 from app.modules.bots import texts
-from app.modules.bots.conversation import process
+from app.modules.bots.conversation import handle_callback
+from app.modules.bots.conversation import handle_command
 from app.modules.bots.filters import matches
 from app.models.bot_users import VKBotUser
 from app.modules.vk_bot import VKBotClient
@@ -22,20 +23,49 @@ logger = logging.getLogger(__name__)
 CONSUMER_NAME = "vk_bot_dispatcher_1"
 
 
-async def _process_user_input(client: VKBotClient, external_id: int, text: str) -> None:
+async def _get_or_create(session, repo, external_id):
+    user = await repo.get_by_external_id(session, external_id)
+    is_new = user is None
+    if is_new:
+        user = VKBotUser(external_id=external_id, status="active")
+        await repo.add(session, user)
+    return user, is_new
+
+
+async def _process_command(client: VKBotClient, external_id: int, text: str) -> None:
     repo = BotUsersRepository(VKBotUser)
     async with SessionLocal() as session:
-        user = await repo.get_by_external_id(session, external_id)
-        is_new = user is None
-        if is_new:
-            user = VKBotUser(external_id=external_id, status="active")
-            await repo.add(session, user)
+        user, is_new = await _get_or_create(session, repo, external_id)
+        outs = handle_command(user, text, is_new)
+        await session.commit()
+    for out in outs:
+        await client.send_message(external_id, out.text, out.keyboard)
 
-        out_messages = process(user, text, is_new)
+
+async def _process_callback(client: VKBotClient, obj: dict) -> None:
+    user_id = int(obj["user_id"])
+    peer_id = int(obj["peer_id"])
+    event_id = obj["event_id"]
+    cmid = obj["conversation_message_id"]
+    payload = obj.get("payload") or {}
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except ValueError:
+            payload = {}
+    data = payload.get("d", "") if isinstance(payload, dict) else ""
+
+    repo = BotUsersRepository(VKBotUser)
+    async with SessionLocal() as session:
+        user, _ = await _get_or_create(session, repo, user_id)
+        out = handle_callback(user, data)
         await session.commit()
 
-    for out in out_messages:
-        await client.send_message(external_id, out.text, out.keyboard)
+    try:
+        await client.edit_message(peer_id, cmid, out.text, out.keyboard)
+    except Exception:
+        logger.warning("VK bot: не удалось отредактировать сообщение", exc_info=True)
+    await client.send_event_answer(event_id, user_id, peer_id)
 
 
 def _is_start_payload(payload) -> bool:
@@ -54,16 +84,16 @@ async def _handle_update(client: VKBotClient, update: dict) -> None:
         if update_type == "message_new":
             message = update["object"]["message"]
             from_id = int(message["from_id"])
-            if from_id < 0:  # сообщение от сообщества — игнорируем
+            if from_id < 0:
                 return
             text = message.get("text", "")
-            # Кнопка «Начать» шлёт payload {"command":"start"}, а не текст.
             if _is_start_payload(message.get("payload")):
                 text = "/start"
-            await _process_user_input(client, from_id, text)
+            await _process_command(client, from_id, text)
         elif update_type == "message_allow":
-            user_id = int(update["object"]["user_id"])
-            await _process_user_input(client, user_id, "/start")
+            await _process_command(client, int(update["object"]["user_id"]), "/start")
+        elif update_type == "message_event":
+            await _process_callback(client, update["object"])
     except Exception:
         logger.exception("VK bot: ошибка обработки апдейта %s", update_type)
 

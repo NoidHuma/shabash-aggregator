@@ -3,22 +3,24 @@ import logging
 
 from aiogram import Bot
 from aiogram import Dispatcher
+from aiogram.types import CallbackQuery
+from aiogram.types import InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup
 from aiogram.types import InputMediaPhoto
-from aiogram.types import KeyboardButton
 from aiogram.types import Message
-from aiogram.types import ReplyKeyboardMarkup
+from aiogram.types import ReplyParameters
 
 from app.constants.streams import PREPARED_POSTS_STREAM
 from app.constants.streams import TG_BOT_DISPATCHER_GROUP
-from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.redis import redis_client
+from app.core.config import settings
 from app.db.database import SessionLocal
 from app.modules.bots import texts
-from app.modules.bots.conversation import process
+from app.modules.bots.conversation import handle_callback
+from app.modules.bots.conversation import handle_command
 from app.modules.bots.filters import matches
 from app.modules.bots.keyboards import Keyboard
-from app.modules.bots.keyboards import MENU_ONLY_KB
 from app.models.bot_users import TGBotUser
 from app.repositories.bot_users_repository import BotUsersRepository
 from app.services.post_formatter import format_post
@@ -33,11 +35,15 @@ TG_TEXT_LIMIT = 4096
 dp = Dispatcher()
 
 
-def _to_tg_keyboard(keyboard: Keyboard | None) -> ReplyKeyboardMarkup | None:
+def _to_tg_kb(keyboard: Keyboard | None) -> InlineKeyboardMarkup | None:
     if keyboard is None:
         return None
-    rows = [[KeyboardButton(text=b.label) for b in row] for row in keyboard]
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=b.label, callback_data=b.data) for b in row]
+            for row in keyboard
+        ]
+    )
 
 
 @dp.message()
@@ -55,22 +61,52 @@ async def on_message(message: Message) -> None:
             user = TGBotUser(external_id=external_id, status="active")
             await repo.add(session, user)
 
-        out_messages = process(user, message.text or "", is_new)
+        outs = handle_command(user, message.text or "", is_new)
         await session.commit()
 
-    for out in out_messages:
-        await message.answer(out.text, reply_markup=_to_tg_keyboard(out.keyboard))
+    for out in outs:
+        await message.answer(out.text, reply_markup=_to_tg_kb(out.keyboard))
+
+
+@dp.callback_query()
+async def on_callback(callback: CallbackQuery) -> None:
+    if callback.from_user is None:
+        return
+
+    external_id = callback.from_user.id
+    repo = BotUsersRepository(TGBotUser)
+
+    async with SessionLocal() as session:
+        user = await repo.get_by_external_id(session, external_id)
+        if user is None:
+            user = TGBotUser(external_id=external_id, status="active")
+            await repo.add(session, user)
+
+        out = handle_callback(user, callback.data or "")
+        await session.commit()
+
+    try:
+        # Редактируем то же сообщение — чат не засоряется вопросами/ответами.
+        await callback.message.edit_text(out.text, reply_markup=_to_tg_kb(out.keyboard))
+    except Exception:
+        # Например, «message is not modified» — игнорируем.
+        pass
+    await callback.answer()
 
 
 async def _send_post(bot: Bot, chat_id: int, text: str, photo_urls: list[str]) -> None:
-    await bot.send_message(chat_id, text[:TG_TEXT_LIMIT], disable_web_page_preview=True)
+    sent = await bot.send_message(chat_id, text[:TG_TEXT_LIMIT], disable_web_page_preview=True)
     if not photo_urls:
         return
+    # Фото отправляем ОТВЕТОМ на текстовое сообщение (привязка фото к тексту).
+    reply = ReplyParameters(message_id=sent.message_id)
     urls = photo_urls[:10]
     if len(urls) == 1:
-        await bot.send_photo(chat_id, urls[0])
+        await bot.send_photo(chat_id, urls[0], reply_parameters=reply)
     else:
-        await bot.send_media_group(chat_id, [InputMediaPhoto(media=u) for u in urls])
+        await bot.send_media_group(
+            chat_id, [InputMediaPhoto(media=u) for u in urls], reply_parameters=reply
+        )
 
 
 async def _dispatch(bot: Bot, stream_service: StreamService, repo, message) -> None:
@@ -87,7 +123,6 @@ async def _dispatch(bot: Bot, stream_service: StreamService, repo, message) -> N
             try:
                 await _send_post(bot, user.external_id, body, post.attachments)
             except Exception:
-                # Пользователь заблокировал бота и т.п. — не валим рассылку.
                 logger.warning("TG bot: не доставлено пользователю %s", user.external_id, exc_info=True)
             await asyncio.sleep(0.05)
 

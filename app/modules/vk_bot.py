@@ -22,23 +22,28 @@ _COLOR_MAP = {
 
 
 def to_vk_keyboard(keyboard: Keyboard | None) -> dict | None:
+    """Inline-клавиатура VK с callback-кнопками (для редактирования на месте)."""
     if keyboard is None:
         return None
     buttons = [
         [
             {
-                "action": {"type": "text", "label": btn.label},
+                "action": {
+                    "type": "callback",
+                    "label": btn.label,
+                    "payload": json.dumps({"d": btn.data}),
+                },
                 "color": _COLOR_MAP.get(btn.color, "secondary"),
             }
             for btn in row
         ]
         for row in keyboard
     ]
-    return {"one_time": False, "inline": False, "buttons": buttons}
+    return {"inline": True, "buttons": buttons}
 
 
 class VKBotClient:
-    """Community-бот VK через Bots Long Poll + messages.send."""
+    """Community-бот VK через Bots Long Poll + messages.send/edit."""
 
     BASE_URL = "https://api.vk.com/method"
 
@@ -71,8 +76,7 @@ class VKBotClient:
     async def poll(self, server: str, key: str, ts: str, wait: int = 25) -> dict:
         async with httpx.AsyncClient(timeout=self._timeout + wait) as client:
             response = await client.get(
-                server,
-                params={"act": "a_check", "key": key, "ts": ts, "wait": wait},
+                server, params={"act": "a_check", "key": key, "ts": ts, "wait": wait}
             )
         response.raise_for_status()
         return response.json()
@@ -87,6 +91,26 @@ class VKBotClient:
         if vk_kb is not None:
             params["keyboard"] = json.dumps(vk_kb, ensure_ascii=False)
         await self._api("messages.send", params)
+
+    async def edit_message(
+        self, peer_id: int, conversation_message_id: int, text: str, keyboard: Keyboard | None = None
+    ) -> None:
+        params = {
+            "peer_id": peer_id,
+            "conversation_message_id": conversation_message_id,
+            "message": text[:VK_TEXT_LIMIT],
+        }
+        vk_kb = to_vk_keyboard(keyboard)
+        if vk_kb is not None:
+            params["keyboard"] = json.dumps(vk_kb, ensure_ascii=False)
+        await self._api("messages.edit", params)
+
+    async def send_event_answer(self, event_id: str, user_id: int, peer_id: int) -> None:
+        # Подтверждаем нажатие callback-кнопки (убираем «часики»).
+        await self._api(
+            "messages.sendMessageEventAnswer",
+            {"event_id": event_id, "user_id": user_id, "peer_id": peer_id},
+        )
 
     async def send_post(self, user_id: int, text: str, photo_urls: list[str]) -> None:
         attachments: list[str] = []
@@ -109,7 +133,7 @@ class VKBotClient:
         upload = await self._api("photos.getMessagesUploadServer", {"peer_id": user_id})
         upload_url = upload["upload_url"]
 
-        async with httpx.AsyncClient(timeout=self._timeout) as client:
+        async with httpx.AsyncClient(timeout=self._timeout, follow_redirects=True) as client:
             image = await client.get(url)
             image.raise_for_status()
             uploaded = await client.post(

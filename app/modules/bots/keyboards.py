@@ -1,29 +1,35 @@
 from dataclasses import dataclass
 
 
-# Цвет кнопки. В Telegram игнорируется (только эмодзи на подписи),
-# в VK маппится: green->positive, blue->primary, red->negative, default->secondary.
+# Inline-кнопка: подпись + callback-данные (что прислать боту по нажатию).
+# color используется только в VK (green->positive, blue->primary,
+# red->negative, default->secondary); в Telegram цвет inline-кнопок не задаётся.
 @dataclass
 class Button:
     label: str
+    data: str
     color: str = "default"
 
 
-# Клавиатура — список рядов кнопок.
+# Клавиатура — список рядов кнопок (inline).
 Keyboard = list[list[Button]]
 
 
 MENU_KB: Keyboard = [
-    [Button("⚙", "green")],
-    [Button("🎧", "blue")],
-    [Button("🚫", "red")],
+    [Button("⚙", "settings", "green")],
+    [Button("🎧", "support", "blue")],
+    [Button("🚫", "pause", "red")],
 ]
 
-MENU_ONLY_KB: Keyboard = [[Button("Меню", "green")]]
+# Одиночная кнопка «Меню» (вернуться в главное меню).
+MENU_BTN_KB: Keyboard = [[Button("Меню", "menu", "green")]]
 
-START_KB: Keyboard = [[Button("Старт", "green")]]
+# Кнопка «Старт» (возобновить после паузы).
+START_BTN_KB: Keyboard = [[Button("Старт", "start", "green")]]
 
-# Для всех шагов мастера: 1 и 2 — зелёные, 3 (прервать) — красная.
-WIZARD_KB: Keyboard = [[Button("1", "green"), Button("2", "green"), Button("3", "red")]]
+# Шаги мастера: 1 и 2 — зелёные, 3 (прервать) — красная.
+WIZARD_KB: Keyboard = [
+    [Button("1", "w1", "green"), Button("2", "w2", "green"), Button("3", "w3", "red")]
+]
 
-CONFIRM_KB: Keyboard = [[Button("Да", "green"), Button("Нет", "red")]]
+CONFIRM_KB: Keyboard = [[Button("Да", "yes", "green"), Button("Нет", "no", "red")]]

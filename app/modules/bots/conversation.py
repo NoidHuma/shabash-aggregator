@@ -7,96 +7,116 @@ from app.modules.bots import wizard
 
 
 @dataclass
-class OutMessage:
+class Out:
     text: str
     keyboard: kb.Keyboard | None = None
+    edit: bool = False  # True -> отредактировать текущее сообщение; False -> новое
 
 
 START_TRIGGERS = {"/start", "старт"}
 
 
-def process(user, text: str, is_new: bool) -> list[OutMessage]:
+def handle_command(user, text: str, is_new: bool) -> list[Out]:
     """
-    Обрабатывает входящее сообщение пользователя бота.
-
-    Мутирует поля user (status, wizard_step, wizard_draft, фильтры) — вызывающий
-    транспорт сохраняет изменения и отправляет полученные OutMessage.
-    Транспортно-независимая логика (общая для TG и VK).
+    Обработка обычного сообщения пользователя (/start, текст).
+    Возвращает сообщения, которые нужно ОТПРАВИТЬ (новые).
     """
-
     text = (text or "").strip()
     lowered = text.lower()
 
-    # Внутри мастера настройки — всё уходит в его обработчик.
-    if user.wizard_step is not None:
-        return _wizard_input(user, text)
-
     if is_new:
         user.status = "active"
-        return [OutMessage(texts.WELCOME), OutMessage(texts.MENU, kb.MENU_KB)]
+        _reset_wizard(user)
+        return [Out(texts.WELCOME), Out(texts.MENU, kb.MENU_KB)]
 
     if lowered in START_TRIGGERS:
         if user.status == "paused":
             user.status = "active"
-            return [OutMessage(texts.WELCOME_BACK, kb.MENU_ONLY_KB)]
-        return [OutMessage(texts.MENU, kb.MENU_KB)]
+            return [Out(texts.WELCOME_BACK, kb.MENU_KB)]
+        return [Out(texts.MENU, kb.MENU_KB)]
 
-    if text == "⚙":
+    # Любой другой ввод текстом.
+    if user.status == "paused":
+        return [Out(texts.PAUSED_HINT, kb.START_BTN_KB)]
+    return [Out(texts.MENU, kb.MENU_KB)]
+
+
+def handle_callback(user, data: str) -> Out:
+    """
+    Обработка нажатия inline-кнопки. Возвращает ОДНО действие — отредактировать
+    текущее сообщение (edit=True), чтобы чат не засорялся вопросами и ответами.
+    """
+    data = (data or "").strip()
+
+    if data == "settings":
         user.wizard_step = 0
         user.wizard_draft = {}
-        return [OutMessage(wizard.question_text(0), kb.WIZARD_KB)]
+        return Out(wizard.question_text(0), kb.WIZARD_KB, edit=True)
 
-    if text == "🎧":
-        return [OutMessage(texts.SUPPORT.format(phone=settings.bot_support_phone), kb.MENU_ONLY_KB)]
+    if data == "support":
+        return Out(texts.SUPPORT.format(phone=settings.bot_support_phone), kb.MENU_BTN_KB, edit=True)
 
-    if text == "🚫":
+    if data == "pause":
         user.status = "paused"
-        return [OutMessage(texts.PAUSED, kb.START_KB)]
+        _reset_wizard(user)
+        return Out(texts.PAUSED, kb.START_BTN_KB, edit=True)
 
-    if text == "Меню":
-        return [OutMessage(texts.MENU, kb.MENU_KB)]
+    if data == "start":
+        user.status = "active"
+        return Out(texts.WELCOME_BACK, kb.MENU_KB, edit=True)
 
-    # Нераспознанный ввод.
-    if user.status == "paused":
-        return [OutMessage(texts.PAUSED_HINT, kb.START_KB)]
-    return [OutMessage(texts.MENU, kb.MENU_KB)]
+    if data == "menu":
+        _reset_wizard(user)
+        return Out(texts.MENU, kb.MENU_KB, edit=True)
+
+    if data in ("w1", "w2", "w3", "yes", "no"):
+        return _wizard_callback(user, data)
+
+    return Out(texts.MENU, kb.MENU_KB, edit=True)
 
 
-def _wizard_input(user, text: str) -> list[OutMessage]:
+def _wizard_callback(user, data: str) -> Out:
     step_index = user.wizard_step
+    if step_index is None:
+        return Out(texts.MENU, kb.MENU_KB, edit=True)
 
     # Стадия подтверждения.
     if step_index >= wizard.CONFIRM_STEP:
-        if text == "Да":
+        if data == "yes":
             _apply_draft(user)
             _reset_wizard(user)
-            return [OutMessage(texts.SAVED, kb.MENU_ONLY_KB)]
-        if text == "Нет":
+            return Out(texts.SAVED, kb.MENU_BTN_KB, edit=True)
+        if data == "no":
             _reset_wizard(user)
-            return [OutMessage(texts.NOT_SAVED, kb.MENU_ONLY_KB)]
-        return [OutMessage(texts.CONFIRM_PROMPT.format(summary=wizard.summary_text(user.wizard_draft or {})), kb.CONFIRM_KB)]
+            return Out(texts.NOT_SAVED, kb.MENU_BTN_KB, edit=True)
+        return Out(
+            texts.CONFIRM_PROMPT.format(summary=wizard.summary_text(user.wizard_draft or {})),
+            kb.CONFIRM_KB,
+            edit=True,
+        )
 
-    step = wizard.STEPS[step_index]
-
-    if text == "3":
+    # Обычный шаг — ждём w1/w2/w3.
+    if data == "w3":
         _reset_wizard(user)
-        return [OutMessage(texts.ABORTED, kb.MENU_ONLY_KB)]
+        return Out(texts.ABORTED, kb.MENU_BTN_KB, edit=True)
 
-    if text in step.values:
+    if data in ("w1", "w2"):
+        choice = "1" if data == "w1" else "2"
+        step = wizard.STEPS[step_index]
         draft = dict(user.wizard_draft or {})
-        draft[step.field] = step.values[text]
+        draft[step.field] = step.values[choice]
         user.wizard_draft = draft
 
         next_index = step_index + 1
         if next_index < wizard.CONFIRM_STEP:
             user.wizard_step = next_index
-            return [OutMessage(wizard.question_text(next_index), kb.WIZARD_KB)]
+            return Out(wizard.question_text(next_index), kb.WIZARD_KB, edit=True)
 
         user.wizard_step = wizard.CONFIRM_STEP
-        return [OutMessage(texts.CONFIRM_PROMPT.format(summary=wizard.summary_text(draft)), kb.CONFIRM_KB)]
+        return Out(texts.CONFIRM_PROMPT.format(summary=wizard.summary_text(draft)), kb.CONFIRM_KB, edit=True)
 
-    # Невалидный ввод — повторяем текущий вопрос.
-    return [OutMessage(wizard.question_text(step_index), kb.WIZARD_KB)]
+    # Невалидное нажатие на этом шаге — перерисовываем текущий вопрос.
+    return Out(wizard.question_text(step_index), kb.WIZARD_KB, edit=True)
 
 
 def _apply_draft(user) -> None:
