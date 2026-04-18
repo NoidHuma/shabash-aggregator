@@ -27,7 +27,7 @@ _WORK_TYPE_LABEL = {
 }
 
 
-def format_post(post: Post, header: str = "Новая заявка!") -> str:
+def format_post(post: Post, header: str = "🔥 Новая заявка! 🔥") -> str:
     """Собирает текст заявки для публикации в едином формате."""
 
     source = _SOURCE_LABEL.get(post.source, str(post.source))
@@ -44,8 +44,8 @@ def format_post(post: Post, header: str = "Новая заявка!") -> str:
         f"Исходная публикация - {post.source_post_url}\n\n"
         "Исходный текст:\n"
         f"{post.text}\n\n"
-        f"Длительность - {duration}\n"
-        f"Характер работы - {work_type}\n"
-        f"Оплата - {payment}\n"
-        f"Адрес - {address}"
+        f"🕒 Длительность - {duration}\n"
+        f"🔨 Характер работы - {work_type}\n"
+        f"💵 Оплата - {payment}\n"
+        f"📍 Адрес - {address}"
     )

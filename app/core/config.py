@@ -53,8 +53,9 @@ class Settings(BaseSettings):
     # Персональные боты (рассылка по пользовательским фильтрам)
     # TG-бот для личных сообщений (отдельный от канального).
     tg_bot_dispatch_token: str = ""
-    # Заглушка телефона поддержки (пока фейк).
-    bot_support_phone: str = "+7 (900) 123-45-67"
+    # поддержка
+    bot_support_tg: str = "t.me/shabashsupport"
+    bot_support_vk: str = "vk.com/at1mon1n"
 
     # VK
     vk_token: str

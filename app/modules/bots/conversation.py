@@ -54,7 +54,7 @@ def handle_callback(user, data: str) -> Out:
         return Out(wizard.question_text(0), kb.WIZARD_KB, edit=True)
 
     if data == "support":
-        return Out(texts.SUPPORT.format(phone=settings.bot_support_phone), kb.MENU_BTN_KB, edit=True)
+        return Out(texts.SUPPORT.format(tg=settings.bot_support_tg, vk=settings.bot_support_vk), kb.MENU_BTN_KB, edit=True)
 
     if data == "pause":
         user.status = "paused"
