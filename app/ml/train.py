@@ -18,8 +18,8 @@ from sklearn.pipeline import FeatureUnion
 from sklearn.pipeline import Pipeline
 from sklearn.svm import LinearSVC
 
-from ml.save_classifier import save_classifier
-from ml.data import load_samples
+from app.ml.save_classifier import save_classifier
+from app.ml.data import load_samples
 from ml.preprocessing import clean_text
 
 
