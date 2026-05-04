@@ -15,6 +15,15 @@ class Button:
 Keyboard = list[list[Button]]
 
 
+# VK inline-клавиатура ограничена (≈5 кнопок в ряду, до 6 рядов) — раскладываем
+# числовые кнопки рядами по 5.
+_MAX_PER_ROW = 5
+
+
+def _rows(buttons: list[Button], per_row: int = _MAX_PER_ROW) -> Keyboard:
+    return [buttons[i:i + per_row] for i in range(0, len(buttons), per_row)]
+
+
 MENU_KB: Keyboard = [
     [Button("⚙", "settings", "green")],
     [Button("🎧", "support", "blue")],
@@ -27,9 +36,46 @@ MENU_BTN_KB: Keyboard = [[Button("Меню", "menu", "green")]]
 # Кнопка «Старт» (возобновить после паузы).
 START_BTN_KB: Keyboard = [[Button("Старт", "start", "green")]]
 
-# Шаги мастера: 1 и 2 — зелёные, 3 (прервать) — красная.
-WIZARD_KB: Keyboard = [
-    [Button("1", "w1", "green"), Button("2", "w2", "green"), Button("3", "w3", "red")]
+# Меню настроек (после ⚙): 1 - перенастроить всё, 2 - изменить один, 3 - назад.
+SETTINGS_KB: Keyboard = [
+    [
+        Button("1", "reconf_all", "green"),
+        Button("2", "reconf_one", "green"),
+        Button("3", "menu", "red"),
+    ]
 ]
 
-CONFIRM_KB: Keyboard = [[Button("Да", "yes", "green"), Button("Нет", "no", "red")]]
+# Выбор категории фильтра (1..4) + «Отмена».
+CATEGORY_KB: Keyboard = [
+    [
+        Button("1", "cat1", "green"),
+        Button("2", "cat2", "green"),
+        Button("3", "cat3", "green"),
+        Button("4", "cat4", "green"),
+    ],
+    [Button("Отмена", "cancel", "red")],
+]
+
+# Подтверждение: 1 - сохранить (зел.), 2 - внести изменения (кр.), 3 - отменить (кр.).
+CONFIRM_KB: Keyboard = [
+    [
+        Button("1", "save", "green"),
+        Button("2", "edit", "red"),
+        Button("3", "cancel", "red"),
+    ]
+]
+
+
+def options_kb(n: int) -> Keyboard:
+    """Кнопки вариантов ответа на вопрос (1..n зелёные) + красная «Отмена»."""
+    buttons = [Button(str(i), f"opt{i}", "green") for i in range(1, n + 1)]
+    return _rows(buttons) + [[Button("Отмена", "cancel", "red")]]
+
+
+def filter_pick_kb(indices: list[int]) -> Keyboard:
+    """Кнопки выбора конкретного фильтра внутри категории + «Отмена».
+
+    Подпись — локальный номер (1..N), данные — глобальный индекс фильтра f{idx}.
+    """
+    buttons = [Button(str(pos), f"f{idx}", "green") for pos, idx in enumerate(indices, start=1)]
+    return _rows(buttons) + [[Button("Отмена", "cancel", "red")]]

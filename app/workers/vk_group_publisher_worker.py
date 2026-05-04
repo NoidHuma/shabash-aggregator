@@ -8,6 +8,7 @@ from app.core.logging import setup_logging
 from app.core.redis import redis_client
 from app.modules.vk_publisher import VKPublisherClient
 from app.services.post_formatter import format_post
+from app.services.publish_policy import allowed_in_aggregator
 from app.services.stream_service import StreamPostMessage
 from app.services.stream_service import StreamService
 
@@ -54,6 +55,14 @@ class VKGroupPublisherWorker:
 
     async def _handle_message(self, message: StreamPostMessage) -> None:
         post = message.post
+
+        if not allowed_in_aggregator(post):
+            await self._stream_service.ack(
+                stream=self._input_stream, group=self._group, message_id=message.message_id
+            )
+            logger.info("post id=%s пропущен (постоянная/вахта) — не для сообщества", post.id)
+            return
+
         try:
             await self._publisher.publish(format_post(post), post.attachments)
         except Exception:

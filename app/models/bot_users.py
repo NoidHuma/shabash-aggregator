@@ -21,6 +21,10 @@ class _BotUserMixin:
     status = mapped_column(Text, nullable=False, default="active")
 
     # Фильтры. По умолчанию пользователь получает всё.
+    # Источник заявок (VK / Telegram).
+    src_vk = mapped_column(Boolean, nullable=False, default=True)
+    src_tg = mapped_column(Boolean, nullable=False, default=True)
+
     payment_required = mapped_column(Boolean, nullable=False, default=False)
     address_required = mapped_column(Boolean, nullable=False, default=False)
 
@@ -40,6 +44,8 @@ class _BotUserMixin:
     # == числу шагов — стадия подтверждения. wizard_draft — черновик ответов.
     wizard_step = mapped_column(Integer, nullable=True)
     wizard_draft = mapped_column(JSON, nullable=True)
+    # Режим мастера: None | "all" (перенастройка всех) | "pick" (один фильтр).
+    wizard_mode = mapped_column(Text, nullable=True)
 
     created_at = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 

@@ -1,5 +1,6 @@
 from app.domain.post import Post
 from app.enums.duration_type import DurationType
+from app.enums.post_source import PostSource
 from app.enums.work_type import WorkType
 
 
@@ -11,6 +12,10 @@ def matches(user, post: Post) -> bool:
     work_type = attrs.work_type if attrs else WorkType.UNKNOWN
     payment = attrs.payment if attrs else None
     address = attrs.address if attrs else None
+
+    source_flag = {PostSource.VK: user.src_vk, PostSource.TG: user.src_tg}.get(post.source, True)
+    if not source_flag:
+        return False
 
     if user.payment_required and not payment:
         return False
