@@ -13,6 +13,4 @@ COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini .
 
-# По умолчанию — локальный супервизор всех воркеров. В docker compose каждый
-# воркер запускается своим сервисом с собственной командой.
 CMD ["python", "-m", "app.run_all"]

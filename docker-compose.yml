@@ -1,10 +1,3 @@
-# Полный стек: инфраструктура (PostgreSQL, Redis) + все воркеры конвейера.
-# Запуск:  docker compose up -d --build
-#
-# Порядок старта: postgres/redis -> migrate (миграции) -> seed (пере-сидинг
-# курсоров на «сейчас», чтобы после простоя не было всплеска старых заявок)
-# -> воркеры. Каждый воркер — отдельный сервис с авто-перезапуском.
-
 x-base: &base
   build: .
   image: shabash-aggregator
@@ -29,8 +22,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    # Порт доступен только с самого сервера (localhost), не из интернета.
-    # Воркерам он не нужен — они ходят к postgres по внутренней сети Docker.
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -45,7 +36,6 @@ services:
   redis:
     image: redis:7
     container_name: jobs_redis
-    # Только localhost сервера, не наружу (Redis по умолчанию без пароля).
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
@@ -57,7 +47,6 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # Одноразово: применяет миграции схемы БД.
   migrate:
     <<: *base
     command: python -m alembic upgrade head
@@ -66,8 +55,6 @@ services:
       postgres:
         condition: service_healthy
 
-  # Одноразово: ставит курсоры last_seen на текущий последний пост/сообщение,
-  # чтобы конвейер брал только новые заявки (без нагона старых после простоя).
   seed:
     <<: *base
     command: python -m app.utils.seed_cursors --all
