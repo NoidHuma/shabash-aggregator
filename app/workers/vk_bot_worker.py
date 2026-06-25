@@ -90,8 +90,6 @@ async def _handle_update(client: VKBotClient, update: dict) -> None:
             if _is_start_payload(message.get("payload")):
                 text = "/start"
             await _process_command(client, from_id, text)
-        elif update_type == "message_allow":
-            await _process_command(client, int(update["object"]["user_id"]), "/start")
         elif update_type == "message_event":
             await _process_callback(client, update["object"])
     except Exception:
