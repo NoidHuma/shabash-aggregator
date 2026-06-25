@@ -11,4 +11,3 @@ tests/
 *.session
 *.session-journal
 .env
-README.md
