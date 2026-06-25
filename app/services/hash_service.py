@@ -3,18 +3,6 @@ import re
 
 
 def normalize_text(text: str) -> str:
-    """
-    Приводит текст к виду,
-    пригодному для дедупликации.
-
-    Пример:
-
-    'Привет!!! Мир'
-
-    ->
-
-    'приветмир'
-    """
 
     text = text.lower()
 
@@ -26,9 +14,6 @@ def normalize_text(text: str) -> str:
 
 
 def calculate_text_hash(text: str) -> str:
-    """
-    Считает SHA256 от нормализованного текста.
-    """
 
     normalized_text = normalize_text(text)
 

@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 
 
-# Inline-кнопка: подпись + callback-данные (что прислать боту по нажатию).
-# color используется только в VK (green->positive, blue->primary,
-# red->negative, default->secondary); в Telegram цвет inline-кнопок не задаётся.
 @dataclass
 class Button:
     label: str
@@ -11,12 +8,9 @@ class Button:
     color: str = "default"
 
 
-# Клавиатура — список рядов кнопок (inline).
 Keyboard = list[list[Button]]
 
 
-# VK inline-клавиатура ограничена (≈5 кнопок в ряду, до 6 рядов) — раскладываем
-# числовые кнопки рядами по 5.
 _MAX_PER_ROW = 5
 
 
@@ -30,13 +24,10 @@ MENU_KB: Keyboard = [
     [Button("🚫", "pause", "red")],
 ]
 
-# Одиночная кнопка «Меню» (вернуться в главное меню).
 MENU_BTN_KB: Keyboard = [[Button("Меню", "menu", "green")]]
 
-# Кнопка «Старт» (возобновить после паузы).
 START_BTN_KB: Keyboard = [[Button("Старт", "start", "green")]]
 
-# Меню настроек (после ⚙): 1 - перенастроить всё, 2 - изменить один, 3 - назад.
 SETTINGS_KB: Keyboard = [
     [
         Button("1", "reconf_all", "green"),
@@ -45,7 +36,6 @@ SETTINGS_KB: Keyboard = [
     ]
 ]
 
-# Выбор категории фильтра (1..4) + «Отмена».
 CATEGORY_KB: Keyboard = [
     [
         Button("1", "cat1", "green"),
@@ -56,7 +46,6 @@ CATEGORY_KB: Keyboard = [
     [Button("Отмена", "cancel", "red")],
 ]
 
-# Подтверждение: 1 - сохранить (зел.), 2 - внести изменения (кр.), 3 - отменить (кр.).
 CONFIRM_KB: Keyboard = [
     [
         Button("1", "save", "green"),
@@ -67,15 +56,10 @@ CONFIRM_KB: Keyboard = [
 
 
 def options_kb(n: int) -> Keyboard:
-    """Кнопки вариантов ответа на вопрос (1..n зелёные) + красная «Отмена»."""
     buttons = [Button(str(i), f"opt{i}", "green") for i in range(1, n + 1)]
     return _rows(buttons) + [[Button("Отмена", "cancel", "red")]]
 
 
 def filter_pick_kb(indices: list[int]) -> Keyboard:
-    """Кнопки выбора конкретного фильтра внутри категории + «Отмена».
-
-    Подпись — локальный номер (1..N), данные — глобальный индекс фильтра f{idx}.
-    """
     buttons = [Button(str(pos), f"f{idx}", "green") for pos, idx in enumerate(indices, start=1)]
     return _rows(buttons) + [[Button("Отмена", "cancel", "red")]]

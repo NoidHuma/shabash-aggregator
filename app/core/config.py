@@ -16,62 +16,50 @@ class Settings(BaseSettings):
     redis_host: str
     redis_port: int
 
-    # Telegram (client API через Telethon)
+    # Telegram скрапинг
     tg_api_id: int
     tg_api_hash: str
     tg_session_name: str = "tg_scraper"
     tg_poll_interval: int = 60
     tg_messages_per_request: int = 50
-    # Порог, до которого Telethon сам пережидает FloodWait (секунды).
     tg_flood_sleep_threshold: int = 60
 
-    # ML (фильтр релевантности)
-    ml_model_path: str = "models/relevance_clf.joblib"
-
-    # LLM (извлечение атрибутов). OpenAI-совместимый API (по умолчанию OpenRouter).
-    llm_api_key: str = ""
-    llm_base_url: str = "https://openrouter.ai/api/v1"
-    llm_model: str = "qwen/qwen3-next-80b-a3b-instruct:free"
-    llm_timeout: float = 30.0
-    llm_max_retries: int = 3
-    # Глобальный троттлинг запросов к LLM (лимит провайдера по запросам/сек).
-    # Напр. 0.38 = не чаще 1 запроса раз в ~2.63 секунды.
-    llm_requests_per_second: float = 0.38
-    # Если False — используется заглушка (UNKNOWN/None), без обращений к LLM.
-    llm_enabled: bool = False
-
-    # Публикаторы (агрегирующие каналы)
-    # VK-сообщество, куда постим (положительный id) + токен сообщества (wall.post).
-    vk_publish_group_id: int = 0
-    vk_publish_token: str = ""
-    # Токен ПОЛЬЗОВАТЕЛЯ-админа (scope photos,wall,groups). Нужен, чтобы грузить
-    # фото на стену сообщества: photos.getWallUploadServer токену сообщества
-    # недоступен. Если пусто — посты публикуются без фото.
-    vk_publish_user_token: str = ""
-    # Telegram-канал (id вида -100... или @username) + токен бота-админа.
-    tg_channel: str = ""
-    tg_bot_token: str = ""
-    # Пауза между публикациями (троттлинг под лимиты VK/Telegram), секунды.
-    publish_min_interval: float = 1.0
-
-    # Персональные боты (рассылка по пользовательским фильтрам)
-    # TG-бот для личных сообщений (отдельный от канального).
-    tg_bot_dispatch_token: str = ""
-    # поддержка
-    bot_support_tg: str = "t.me/shabashsupport"
-    bot_support_vk: str = "vk.com/at1mon1n"
-
-    # VK
+    # VK скрапинг
     vk_token: str
     vk_poll_interval: int = 60
     vk_posts_per_request: int = 50
-    # Глобальный троттлинг запросов к VK API (лимит ~3 req/s на приложение).
     vk_requests_per_second: float = 3.0
-    # Сколько раз повторить запрос при ошибке лимита (error_code 6) или
-    # сетевом сбое (таймаут/обрыв соединения).
     vk_max_retries: int = 3
-    # Таймаут одного HTTP-запроса к VK API, секунды.
     vk_request_timeout: float = 10.0
+
+    # Модель фильтрации
+    ml_model_path: str = "models/relevance_clf.joblib"
+
+    # LLM извлечение атрибутов
+    llm_api_key: str = ""
+    llm_base_url: str = "https://api.mistral.ai/v1"
+    llm_model: str = "ministral-14b-2512"
+    llm_timeout: float = 30.0
+    llm_max_retries: int = 3
+    llm_requests_per_second: float = 0.38
+    llm_enabled: bool = False
+
+    # Публикаторы
+    # VK-сообщество
+    vk_publish_group_id: int = 0
+    vk_publish_token: str = ""
+    vk_publish_user_token: str = ""
+    # Telegram-канал
+    tg_channel: str = ""
+    tg_bot_token: str = ""
+    # Пауза
+    publish_min_interval: float = 1.0
+    # TG-бот
+    tg_bot_dispatch_token: str = ""
+
+    # поддержка
+    bot_support_tg: str = "t.me/shabashsupport"
+    bot_support_vk: str = "vk.com/at1mon1n"
 
     class Config:
         env_file = ".env"

@@ -10,13 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 class VKPublisherClient:
-    """
-    Публикация в стену VK-сообщества через wall.post.
-
-    Фото нельзя прикрепить чужим URL — каждое перезаливается в наше сообщество
-    (getWallUploadServer -> upload -> saveWallPhoto), затем прикрепляется к посту.
-    Если фото загрузить не удалось — пост всё равно публикуется (без него).
-    """
 
     BASE_URL = "https://api.vk.com/method"
 
@@ -31,7 +24,6 @@ class VKPublisherClient:
             raise RuntimeError("VK_PUBLISH_TOKEN / VK_PUBLISH_GROUP_ID не заданы — заполни .env")
 
         self._token = token
-        # Фото на стену сообщества грузятся только пользовательским токеном.
         self._photo_token = user_token or token
         self._can_upload_photo = bool(user_token)
         self._group_id = int(group_id)
@@ -49,7 +41,6 @@ class VKPublisherClient:
                 try:
                     attachments.append(await self._upload_photo(url))
                 except Exception as error:
-                    # Логируем конкретную причину (права токена или истёкший URL).
                     logger.warning("VK: фото не прикреплено (%s): %s", url, error)
 
         params = {
@@ -57,8 +48,6 @@ class VKPublisherClient:
             "from_group": 1,
             "message": message,
         }
-        # Если фото залиты пользовательским токеном — постим тем же токеном,
-        # иначе VK молча отбрасывает вложение, загруженное «другим» токеном.
         post_token = self._token
         if attachments:
             params["attachments"] = ",".join(attachments)
@@ -73,7 +62,6 @@ class VKPublisherClient:
             image.raise_for_status()
             image_bytes = image.content
 
-        # Сервер загрузки VK периодически отвечает 5xx/пустым телом — повторяем.
         result: dict | None = None
         last_error: Exception | None = None
         for attempt in range(1, 4):

@@ -14,13 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """
-    OpenAI-совместимый клиент (по умолчанию OpenRouter).
-
-    Делает chat-completions запрос с принудительным JSON-выводом, парсит ответ
-    в dict. На ошибки API и невалидный JSON делает повторы с бэкоффом; если так
-    и не вышло — поднимает исключение (воркер оставит сообщение pending).
-    """
 
     def __init__(
         self,
@@ -36,16 +29,13 @@ class LLMClient:
 
         self._model = model
         self._max_retries = max_retries
-        # max_retries=0: свои повторы делаем сами (ниже), чтобы покрыть и JSON-сбои.
         self._client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=0)
 
-        # Троттлинг: не чаще requests_per_second запросов в секунду.
         self._min_interval = 1.0 / requests_per_second if requests_per_second > 0 else 0.0
         self._throttle_lock = threading.Lock()
         self._last_request_at = 0.0
 
     def _throttle(self) -> None:
-        """Выдерживает паузу под локом, чтобы соблюсти лимит запросов/сек."""
         if self._min_interval <= 0:
             return
         with self._throttle_lock:
@@ -78,7 +68,7 @@ class LLMClient:
                 )
                 content = response.choices[0].message.content or ""
                 return json.loads(content)
-            except Exception as error:  # API-ошибки и json.JSONDecodeError
+            except Exception as error:
                 last_error = error
                 if attempt < self._max_retries:
                     delay = 1.0 * (2 ** attempt)

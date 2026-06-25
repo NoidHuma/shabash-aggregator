@@ -10,13 +10,11 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-# Лимиты Telegram
 TG_TEXT_LIMIT = 4096
 TG_MAX_MEDIA = 10
 
 
 class TGPublisherClient:
-    """Публикация в Telegram-канал через Bot API."""
 
     def __init__(
         self,
@@ -34,8 +32,6 @@ class TGPublisherClient:
         self._max_retries = max_retries
 
     async def publish(self, text: str, photo_urls: list[str]) -> None:
-        # Текст часто длиннее лимита подписи к фото (1024), поэтому шлём его
-        # отдельным сообщением, а фото — ОТВЕТОМ на это сообщение (привязка).
         sent = await self._send_text(text)
         if photo_urls:
             await self._send_photos(photo_urls, reply_to=sent.get("message_id"))
@@ -73,7 +69,6 @@ class TGPublisherClient:
             if payload.get("ok"):
                 return payload["result"]
 
-            # 429 — слишком часто: ждём retry_after и повторяем.
             retry_after = (payload.get("parameters") or {}).get("retry_after")
             if retry_after and attempt < self._max_retries:
                 logger.warning("Telegram %s 429, ждём %sс", method, retry_after)

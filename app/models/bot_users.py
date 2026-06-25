@@ -12,16 +12,14 @@ from app.db.database import Base
 
 
 class _BotUserMixin:
-    """Общие поля пользователя бота (по таблице на каждый бот)."""
 
     id = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     external_id = mapped_column(BigInteger, unique=True, nullable=False)
 
-    # active | paused
+
     status = mapped_column(Text, nullable=False, default="active")
 
-    # Фильтры. По умолчанию пользователь получает всё.
-    # Источник заявок (VK / Telegram).
+
     src_vk = mapped_column(Boolean, nullable=False, default=True)
     src_tg = mapped_column(Boolean, nullable=False, default=True)
 
@@ -39,13 +37,11 @@ class _BotUserMixin:
     dur_vahta = mapped_column(Boolean, nullable=False, default=True)
     dur_unknown = mapped_column(Boolean, nullable=False, default=True)
 
-    # Состояние мастера настройки (переживает перезапуск):
-    # wizard_step = None — мастер не запущен; число — текущий шаг;
-    # == числу шагов — стадия подтверждения. wizard_draft — черновик ответов.
+
     wizard_step = mapped_column(Integer, nullable=True)
     wizard_draft = mapped_column(JSON, nullable=True)
-    # Режим мастера: None | "all" (перенастройка всех) | "pick" (один фильтр).
     wizard_mode = mapped_column(Text, nullable=True)
+
 
     created_at = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 

@@ -99,8 +99,6 @@ class CoarseFilterWorker:
                 status.value,
             )
         except Exception:
-            # Сообщение не подтверждаем: оно останется pending в группе
-            # и будет переобработано. Один сбой не должен валить worker.
             logger.exception(
                 "Failed to process post id=%s, leaving it pending",
                 post.id,

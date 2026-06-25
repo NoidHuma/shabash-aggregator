@@ -2,7 +2,6 @@ from sqlalchemy import select
 
 
 class BotUsersRepository:
-    """Репозиторий пользователей бота. Параметризуется моделью (TG/VK)."""
 
     def __init__(self, model) -> None:
         self._model = model

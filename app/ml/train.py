@@ -20,18 +20,13 @@ from sklearn.svm import LinearSVC
 
 from app.ml.save_classifier import save_classifier
 from app.ml.data import load_samples
-from ml.preprocessing import clean_text
+from app.ml.preprocessing import clean_text
 
 
 CANDIDATES = ["logreg", "svm", "nb"]
 
 
 def build_features() -> FeatureUnion:
-    """
-    Признаки = объединение слов (1-2-граммы) и символьных н-грамм (3-5).
-    Символьные ловят опечатки, эмодзи, '500/2', морфологию русского.
-    clean_text применяется как preprocessor — та же нормализация, что в проде.
-    """
     return FeatureUnion(
         [
             (
@@ -62,8 +57,6 @@ def build_classifier(name: str, c: float):
     if name == "logreg":
         return LogisticRegression(class_weight="balanced", max_iter=1000, C=c)
     if name == "svm":
-        # LinearSVC не даёт вероятностей — оборачиваем в калибровку, чтобы был
-        # predict_proba (нужен для порога и для воркера).
         return CalibratedClassifierCV(LinearSVC(class_weight="balanced", C=c))
     if name == "nb":
         return MultinomialNB()
@@ -85,7 +78,6 @@ def benchmark(texts, y, folds: int, c: float, jobs: int) -> None:
 
 
 def tune_threshold(texts, y, name, c, folds, jobs, target_precision):
-    """Подбор порога по out-of-fold вероятностям (без подглядывания в test)."""
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
     pipe = make_pipeline(name, c)
     proba = cross_val_predict(pipe, texts, y, cv=skf, method="predict_proba", n_jobs=jobs)[:, 1]
@@ -102,9 +94,6 @@ def tune_threshold(texts, y, name, c, folds, jobs, target_precision):
         )
         return best_t
 
-    # Максимизируем macro-F1 (среднее F1 по классам 0 и 1). При перекосе в
-    # сторону релевантных это не даёт порогу «провалиться» и пропускать спам —
-    # класс нерелевантных учитывается наравне.
     best_t, best_f1 = 0.5, -1.0
     for t in np.arange(0.05, 0.96, 0.01):
         f1 = f1_score(y, (proba >= t).astype(int), average="macro", zero_division=0)

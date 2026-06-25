@@ -23,7 +23,6 @@ from app.services.stream_service import StreamService
 logger = logging.getLogger(__name__)
 
 
-# Предохранитель от бесконечной пагинации по стене сообщества.
 MAX_WALL_OFFSET = 1000
 
 
@@ -76,14 +75,6 @@ class VKScraper:
         self,
         group: GroupVK,
     ) -> list[dict[str, Any]]:
-        """
-        Постранично собирает посты, появившиеся после last_seen_post_id.
-
-        VK возвращает посты в порядке от новых к старым, поэтому пагинация
-        идёт по offset до тех пор, пока не встретится уже виденный пост.
-        На самом первом проходе (last_seen_post_id is None) забирается только
-        первая страница, чтобы не тянуть всю историю стены.
-        """
 
         owner_id = int(group.group_id)
         last_seen = group.last_seen_post_id
@@ -106,8 +97,6 @@ class VKScraper:
             for raw_post in page:
                 vk_post_id = get_vk_post_id(raw_post)
 
-                # Закреплённые посты всегда идут первыми и могут быть старыми,
-                # поэтому по ним нельзя останавливать пагинацию.
                 if raw_post.get("is_pinned"):
                     if last_seen is None or vk_post_id > last_seen:
                         collected.append(raw_post)
@@ -163,9 +152,6 @@ class VKScraper:
         if domain_post is None:
             return
 
-        # Публикация в Redis намеренно делается после commit БД.
-        # Если она упадёт, пост уже сохранён и не будет переотправлен
-        # (last_seen_post_id сдвинут) — это редкий и осознанный риск MVP.
         try:
             await self._stream_service.publish_post(
                 stream=self._output_stream,
@@ -185,13 +171,6 @@ class VKScraper:
         raw_post: dict[str, Any],
         vk_post_id: int,
     ) -> DomainPost | None:
-        """
-        Сохраняет подходящий пост в БД и возвращает доменный объект.
-
-        Отфильтрованные посты (без текста, реклама, дубли) не сохраняются,
-        но last_seen_post_id для них всё равно сдвигается, чтобы не
-        переобрабатывать их на следующем проходе. Возвращает None.
-        """
 
         if not raw_post.get("text"):
             await self._mark_post_seen(session, group, vk_post_id)

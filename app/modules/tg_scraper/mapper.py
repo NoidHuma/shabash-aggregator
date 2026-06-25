@@ -20,23 +20,16 @@ class TGMessageMapping:
 
 
 def is_processable_message(message: Any) -> bool:
-    """
-    Допускаем только полезные сообщения: обычный текст, фото с подписью,
-    видео с подписью. Отсекаем пустые, системные события, стикеры и
-    документы нецелевого типа (файлы, gif, аудио и т.п.).
-    """
 
     if not (message.raw_text or "").strip():
         return False
 
-    # Системное событие (вступления, смена названия, закреп и т.п.).
     if message.action is not None:
         return False
 
     if message.sticker is not None:
         return False
 
-    # Документ, не являющийся видео, не нужен — даже если есть подпись.
     if message.document is not None and message.video is None:
         return False
 
@@ -103,10 +96,6 @@ def build_message_url(
     chat: ChatTG,
     message: Any,
 ) -> str:
-    """
-    Публичный чат (есть username): https://t.me/{username}/{message_id}
-    Приватный/скрытый: https://t.me/c/{stripped_chat_id}/{message_id}
-    """
 
     tg_chat = getattr(message, "chat", None)
     username = getattr(tg_chat, "username", None) if tg_chat is not None else None

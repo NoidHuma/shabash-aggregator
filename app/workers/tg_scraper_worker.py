@@ -46,8 +46,6 @@ async def run_once(
                     chat=chat,
                 )
         except FloodWaitError as error:
-            # Долгий FloodWait (больше flood_sleep_threshold): не блокируем
-            # остальные чаты, пропускаем этот до следующего цикла.
             logger.warning(
                 "FloodWait %ss on TG chat %s, skipping until next cycle",
                 error.seconds,
@@ -74,7 +72,6 @@ async def main() -> None:
         await tg_client.disconnect()
         return
 
-    # Прогреваем кэш сущностей, чтобы iter_messages резолвил чаты по id.
     await tg_client.warm_entity_cache()
 
     scraper = build_scraper(tg_client)

@@ -10,14 +10,13 @@ from app.modules.bots import wizard
 class Out:
     text: str
     keyboard: kb.Keyboard | None = None
-    edit: bool = False  # True -> отредактировать текущее сообщение; False -> новое
+    edit: bool = False
 
 
 START_TRIGGERS = {"/start", "старт"}
 
 
 def handle_command(user, text: str, is_new: bool) -> list[Out]:
-    """Обработка обычного сообщения (/start, текст) — возвращает НОВЫЕ сообщения."""
     text = (text or "").strip()
     lowered = text.lower()
 
@@ -38,10 +37,8 @@ def handle_command(user, text: str, is_new: bool) -> list[Out]:
 
 
 def handle_callback(user, data: str) -> Out:
-    """Нажатие inline-кнопки -> редактирование текущего сообщения (edit=True)."""
     data = (data or "").strip()
 
-    # --- Главное меню ---
     if data == "support":
         return Out(
             texts.SUPPORT.format(tg=settings.bot_support_tg, vk=settings.bot_support_vk),
@@ -59,7 +56,6 @@ def handle_callback(user, data: str) -> Out:
         _reset_wizard(user)
         return Out(texts.MENU, kb.MENU_KB, edit=True)
 
-    # --- Меню настроек фильтров (после ⚙) ---
     if data == "settings":
         _reset_wizard(user)
         return _settings_menu(user)
@@ -76,16 +72,13 @@ def handle_callback(user, data: str) -> Out:
         user.wizard_step = wizard.CONFIRM_STEP
         return _category_menu()
 
-    # --- Отмена в любом месте мастера ---
     if data == "cancel":
         _reset_wizard(user)
         return Out(texts.NOT_SAVED, kb.MENU_BTN_KB, edit=True)
 
-    # --- Выбор категории -> подменю фильтров ---
     if data.startswith("cat") and data[3:].isdigit():
         return _filter_submenu(user, int(data[3:]))
 
-    # --- Выбор конкретного фильтра ---
     if data.startswith("f") and data[1:].isdigit():
         idx = int(data[1:])
         user.wizard_mode = "pick"
@@ -94,11 +87,9 @@ def handle_callback(user, data: str) -> Out:
             user.wizard_draft = _current_draft(user)
         return _question(idx)
 
-    # --- Ответ на вопрос фильтра ---
     if data.startswith("opt") and data[3:].isdigit():
         return _answer(user, int(data[3:]))
 
-    # --- Подтверждение ---
     if data == "save":
         _apply_draft(user)
         _reset_wizard(user)
@@ -109,7 +100,6 @@ def handle_callback(user, data: str) -> Out:
     return Out(texts.MENU, kb.MENU_KB, edit=True)
 
 
-# --- Экраны ---
 
 def _settings_menu(user) -> Out:
     text = (
@@ -160,7 +150,6 @@ def _answer(user, option: int) -> Out:
     draft.update(flt.assignments[option - 1])
     user.wizard_draft = draft
 
-    # Полная перенастройка — идём к следующему вопросу; иначе сразу к подтверждению.
     if user.wizard_mode == "all":
         nxt = step_index + 1
         if nxt < wizard.CONFIRM_STEP:
@@ -181,7 +170,6 @@ def _confirm(user) -> Out:
     return Out(text, kb.CONFIRM_KB, edit=True)
 
 
-# --- Черновик / состояние ---
 
 def _current_draft(user) -> dict:
     return {field: bool(getattr(user, field)) for field in wizard.ALL_FIELDS}

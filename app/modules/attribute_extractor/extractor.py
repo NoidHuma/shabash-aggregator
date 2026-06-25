@@ -88,9 +88,6 @@ def _clean_optional(value) -> str | None:
 
 
 def build_extractor() -> AttributeExtractor:
-    """
-    Фабрика: настоящий LLM-извлекатель, если LLM_ENABLED=true, иначе заглушка.
-    """
     from app.core.config import settings
 
     if settings.llm_enabled:

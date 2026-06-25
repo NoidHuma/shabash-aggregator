@@ -94,7 +94,6 @@ class TGScraper:
         if domain_post is None:
             return
 
-        # Публикация в Redis после commit БД (тот же компромисс, что в VK).
         try:
             await self._stream_service.publish_post(
                 stream=self._output_stream,

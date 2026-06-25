@@ -5,7 +5,6 @@ from app.enums.work_type import WorkType
 
 
 def matches(user, post: Post) -> bool:
-    """True, если заявка проходит все пользовательские фильтры (логика И)."""
 
     attrs = post.attributes
     duration = attrs.duration if attrs else DurationType.UNKNOWN

@@ -39,10 +39,6 @@ class AttributesRepository:
         post_id: int,
         attributes: PostAttributesDomain,
     ) -> PostAttributes:
-        """
-        Сохраняет атрибуты заявки. Если запись для post_id уже есть —
-        обновляет (защита от UNIQUE(post_id) при повторной обработке).
-        """
 
         existing = await self.get_by_post_id(session=session, post_id=post_id)
 

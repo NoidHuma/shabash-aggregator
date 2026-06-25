@@ -105,7 +105,6 @@ class MLFilterWorker:
                 status.value,
             )
         except Exception:
-            # Сообщение не подтверждаем — останется pending и переобработается.
             logger.exception(
                 "Failed to ML-filter post id=%s, leaving it pending",
                 post.id,

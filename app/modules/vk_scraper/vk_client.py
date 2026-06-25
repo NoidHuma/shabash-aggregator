@@ -1,5 +1,3 @@
-# app/modules/vk_scraper/vk_client.py
-
 import asyncio
 import logging
 import time
@@ -13,21 +11,12 @@ from app.modules.vk_scraper.settings import VK_API_VERSION
 logger = logging.getLogger(__name__)
 
 
-# VK возвращает этот код при превышении частоты запросов
-# ("Too many requests per second").
 VK_TOO_MANY_REQUESTS = 6
 
-# Стена закрыта: доступна только участникам сообщества.
 VK_ACCESS_DENIED = 15
 
 
 class VKAccessDeniedError(Exception):
-    """
-    Стена сообщества недоступна (например, закрыта для не-участников).
-
-    Это устойчивая ошибка: повторять запрос бессмысленно, источник нужно
-    либо сделать доступным (вступить в сообщество), либо деактивировать.
-    """
 
     def __init__(
         self,
@@ -43,16 +32,6 @@ class VKAccessDeniedError(Exception):
 
 
 class VKClient:
-    """
-    Клиент для работы с VK API.
-
-    Учитывает лимиты и сбои VK:
-    - глобальный троттлинг (не чаще vk_requests_per_second на один экземпляр
-      клиента, т.е. на весь процесс-сборщик);
-    - повтор запроса с экспоненциальным бэкоффом при error_code 6 и при
-      сетевых сбоях (таймаут/обрыв соединения);
-    - явная типизированная ошибка VKAccessDeniedError для закрытых стен.
-    """
 
     BASE_URL = "https://api.vk.com/method"
 
@@ -79,13 +58,6 @@ class VKClient:
         count: int = 50,
         offset: int = 0,
     ) -> list[dict]:
-        """
-        Получить посты со стены сообщества.
-
-        owner_id — отрицательный идентификатор сообщества (например, -167102108).
-        count — сколько постов вернуть за один запрос (VK ограничивает 100).
-        offset — смещение от начала стены, нужно для постраничного обхода.
-        """
 
         params = {
             "owner_id": owner_id,
@@ -102,25 +74,11 @@ class VKClient:
 
         return response["items"]
 
-    async def get_group_info(
-        self,
-        owner_id: int,
-    ) -> dict:
-        """
-        Будет реализовано позже.
-        """
-
-        raise NotImplementedError
-
     async def _request(
         self,
         method: str,
         params: dict,
     ) -> dict:
-        """
-        Выполняет запрос к VK API с троттлингом и повтором при error_code 6
-        и сетевых сбоях.
-        """
 
         attempt = 0
 
@@ -136,7 +94,6 @@ class VKClient:
 
                 response.raise_for_status()
             except httpx.TransportError as exc:
-                # Сетевые сбои: таймауты, обрыв соединения, DNS и т.п.
                 if attempt < self._max_retries:
                     attempt += 1
                     delay = self._backoff_delay(attempt)
@@ -196,12 +153,6 @@ class VKClient:
         return self._retry_base_delay * (2 ** (attempt - 1))
 
     async def _throttle(self) -> None:
-        """
-        Не даёт слать запросы чаще, чем 1 раз в self._min_interval секунд.
-
-        Пауза выдерживается под локом, поэтому ограничение работает глобально
-        для всех конкурентных вызовов одного экземпляра клиента.
-        """
 
         if self._min_interval <= 0:
             return

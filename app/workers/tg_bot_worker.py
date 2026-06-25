@@ -86,10 +86,8 @@ async def on_callback(callback: CallbackQuery) -> None:
         await session.commit()
 
     try:
-        # Редактируем то же сообщение — чат не засоряется вопросами/ответами.
         await callback.message.edit_text(out.text, reply_markup=_to_tg_kb(out.keyboard))
     except Exception:
-        # Например, «message is not modified» — игнорируем.
         pass
     await callback.answer()
 
@@ -98,7 +96,6 @@ async def _send_post(bot: Bot, chat_id: int, text: str, photo_urls: list[str]) -
     sent = await bot.send_message(chat_id, text[:TG_TEXT_LIMIT], disable_web_page_preview=True)
     if not photo_urls:
         return
-    # Фото отправляем ОТВЕТОМ на текстовое сообщение (привязка фото к тексту).
     reply = ReplyParameters(message_id=sent.message_id)
     urls = photo_urls[:10]
     if len(urls) == 1:

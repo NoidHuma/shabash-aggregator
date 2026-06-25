@@ -76,7 +76,6 @@ class AttributeExtractorWorker:
         post = message.post
 
         try:
-            # extract может ходить в LLM (блокирующий вызов) — уводим в поток.
             attributes = await asyncio.to_thread(self._extractor.extract, post.text)
             post.attributes = attributes
 

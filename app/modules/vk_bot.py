@@ -22,7 +22,6 @@ _COLOR_MAP = {
 
 
 def to_vk_keyboard(keyboard: Keyboard | None) -> dict | None:
-    """Inline-клавиатура VK с callback-кнопками (для редактирования на месте)."""
     if keyboard is None:
         return None
     buttons = [
@@ -43,7 +42,6 @@ def to_vk_keyboard(keyboard: Keyboard | None) -> dict | None:
 
 
 class VKBotClient:
-    """Community-бот VK через Bots Long Poll + messages.send/edit."""
 
     BASE_URL = "https://api.vk.com/method"
 
@@ -91,8 +89,6 @@ class VKBotClient:
         if vk_kb is not None:
             params["keyboard"] = json.dumps(vk_kb, ensure_ascii=False)
         else:
-            # Сообщение без inline-кнопок: заодно убираем «прилипшую» снизу
-            # обычную клавиатуру (могла остаться от старой версии бота).
             params["keyboard"] = json.dumps({"buttons": [], "one_time": True})
         await self._api("messages.send", params)
 
@@ -110,7 +106,6 @@ class VKBotClient:
         await self._api("messages.edit", params)
 
     async def send_event_answer(self, event_id: str, user_id: int, peer_id: int) -> None:
-        # Подтверждаем нажатие callback-кнопки (убираем «часики»).
         await self._api(
             "messages.sendMessageEventAnswer",
             {"event_id": event_id, "user_id": user_id, "peer_id": peer_id},

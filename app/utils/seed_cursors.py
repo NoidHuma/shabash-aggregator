@@ -15,14 +15,6 @@ from app.repositories.groups_repository import GroupsRepository
 logger = logging.getLogger(__name__)
 
 
-# Проставляет last_seen активным источникам = текущий последний пост/сообщение,
-# чтобы после запуска скраперы брали ТОЛЬКО новое (появившееся после сидинга),
-# и не дампили старые публикации.
-#
-# По умолчанию сидит только источники с пустым курсором (--only-null).
-# Флаг --all сидит ВСЕ активные (чистый запуск «с этого момента»).
-
-
 async def seed_vk(only_null: bool) -> None:
     vk_client = VKClient()
     groups_repository = GroupsRepository()

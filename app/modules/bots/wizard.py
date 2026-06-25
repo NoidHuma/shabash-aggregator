@@ -4,14 +4,10 @@ from typing import Callable
 
 @dataclass
 class FilterDef:
-    # Поля модели, которые меняет этот фильтр (обычно одно; у источника — два).
     fields: list[str]
     question: str
-    # Описания вариантов ответа (нумерованные строки для текста сообщения).
     options: list[str]
-    # Назначения для черновика, параллельно options: option N -> assignments[N-1].
     assignments: list[dict]
-    # Подпись и рендер текущего значения для сводки.
     label: str
     render: Callable[[dict], str]
 
@@ -45,7 +41,6 @@ def _src_render(draft: dict) -> str:
     return "—"
 
 
-# Порядок фильтров = порядок шагов мастера. Источник идёт самым первым.
 FILTERS: list[FilterDef] = [
     FilterDef(
         ["src_vk", "src_tg"],
@@ -88,11 +83,8 @@ FILTERS: list[FilterDef] = [
 
 CONFIRM_STEP = len(FILTERS)
 
-# Все поля модели, которыми управляет мастер (для черновика/применения).
 ALL_FIELDS = [field for flt in FILTERS for field in flt.fields]
 
-# Категории для двухуровневого выбора «изменить конкретный фильтр».
-# (название, индексы фильтров в FILTERS)
 CATEGORIES: list[tuple[str, list[int]]] = [
     ("Источник заявок", [0]),
     ("Оплата и адрес", [1, 2]),
@@ -107,7 +99,6 @@ def question_text(step_index: int) -> str:
 
 
 def summary_text(draft: dict) -> str:
-    """Нумерованная сводка всех 12 фильтров по значениям из черновика."""
     lines = []
     for i, flt in enumerate(FILTERS, start=1):
         lines.append(f"{i}) {flt.label}: {flt.render(draft)}")
@@ -115,7 +106,6 @@ def summary_text(draft: dict) -> str:
 
 
 def category_filters_text(indices: list[int], draft: dict) -> str:
-    """Нумерованный список фильтров одной категории с текущими значениями."""
     lines = []
     for pos, idx in enumerate(indices, start=1):
         flt = FILTERS[idx]

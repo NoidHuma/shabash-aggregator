@@ -10,14 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 class TGClient:
-    """
-    Обёртка над Telethon TelegramClient.
-
-    Клиент создаётся один раз и переиспользуется на всё время работы воркера
-    (одна логин-сессия). Лимиты Telegram: FloodWait с задержкой не больше
-    flood_sleep_threshold Telethon пережидает сам; более долгие ожидания
-    поднимаются как FloodWaitError и обрабатываются на уровне воркера.
-    """
 
     def __init__(
         self,
@@ -40,11 +32,6 @@ class TGClient:
         return await self._client.is_user_authorized()
 
     async def warm_entity_cache(self) -> None:
-        """
-        Подгружает диалоги, чтобы Telethon мог резолвить чаты по их id
-        (иначе iter_messages по числовому id приватного чата может не найти
-        входную сущность).
-        """
 
         await self._client.get_dialogs()
 
@@ -57,15 +44,6 @@ class TGClient:
         last_seen_message_id: int | None,
         limit: int,
     ) -> list[Any]:
-        """
-        Возвращает новые сообщения чата.
-
-        Первый проход (last_seen_message_id is None): берём последние `limit`
-        сообщений (свежие), историю целиком не тянем.
-
-        Последующие проходы: идём от last_seen_message_id вперёд (от старых к
-        новым) по `limit` за раз, чтобы постепенно нагонять без пропусков.
-        """
 
         if last_seen_message_id is None:
             kwargs: dict[str, Any] = {"limit": limit}

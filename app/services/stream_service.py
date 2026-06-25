@@ -84,11 +84,6 @@ class StreamService:
         count: int = 10,
         min_idle_ms: int = 60000,
     ) -> list[StreamPostMessage]:
-        """
-        Забирает «зависшие» сообщения из PEL — те, что были доставлены, но не
-        подтверждены (ack) дольше min_idle_ms (например, после Ctrl+C/падения),
-        чтобы до-обработать их и не потерять.
-        """
 
         await self.ensure_group(stream=stream, group=group)
 
@@ -101,12 +96,11 @@ class StreamService:
             count=count,
         )
 
-        # redis-py возвращает [next_cursor, [(id, data), ...], (deleted_ids)].
         claimed = result[1] if isinstance(result, (list, tuple)) and len(result) >= 2 else []
 
         messages: list[StreamPostMessage] = []
         for message_id, data in claimed:
-            if not data:  # запись была удалена из стрима — пропускаем
+            if not data:
                 continue
             messages.append(
                 StreamPostMessage(

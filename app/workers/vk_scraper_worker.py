@@ -47,8 +47,6 @@ async def run_once(
                     group=group,
                 )
         except VKAccessDeniedError as error:
-            # Стена закрыта (только для участников) — повторять бессмысленно,
-            # деактивируем источник, чтобы не дёргать его каждый цикл.
             logger.warning(
                 "VK group %s wall is closed (error_code %s: %s), deactivating",
                 group.group_id,
@@ -62,8 +60,6 @@ async def run_once(
                 )
                 await session.commit()
         except Exception:
-            # Прочий сбой по одной группе (сетевой, API) не должен
-            # останавливать обход остальных групп и весь worker.
             logger.exception(
                 "Failed to scrape VK group %s",
                 group.group_id,

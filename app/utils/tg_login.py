@@ -11,14 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
-    """
-    Разовый интерактивный логин Telethon.
-
-    Запусти один раз:  python -m app.workers.tg_login
-    Скрипт спросит номер телефона аккаунта и код подтверждения из Telegram
-    (и облачный пароль 2FA, если он включён), после чего создаст файл сессии
-    <TG_SESSION_NAME>.session. Дальше tg_scraper_worker стартует без вопросов.
-    """
 
     setup_logging()
 

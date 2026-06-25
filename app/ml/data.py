@@ -6,23 +6,15 @@ from dataclasses import dataclass
 class Sample:
     post_id: str
     source_id: str
-    source: str  # "VK" / "TG"
+    source: str
     text: str
-    label: int  # 1 = релевантно, 0 = нерелевантно
+    label: int
 
 
 def load_samples(
     path: str,
     min_length: int = 30,
 ) -> list[Sample]:
-    """
-    Загружает размеченные примеры из CSV.
-
-    Берёт только строки с меткой 0/1 (пропускает 'u' и пустые) и только тексты
-    длиной >= min_length — ровно то, что ML-фильтр видит в проде после грубого
-    фильтра. Эти фильтры применяются ВЕЗДЕ (split/train/evaluate), чтобы выборки
-    и метрики были согласованы с продакшеном.
-    """
 
     samples: list[Sample] = []
 

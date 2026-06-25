@@ -9,12 +9,6 @@ from app.enums.work_type import WorkType
 
 
 def serialize_post(post: Post) -> dict[str, str]:
-    """
-    Converts domain Post to a Redis-friendly dict.
-
-    Redis Stream fields should be strings, so the whole post is stored
-    as one JSON payload field.
-    """
 
     payload = {
         "id": post.id,
@@ -35,9 +29,6 @@ def serialize_post(post: Post) -> dict[str, str]:
 
 
 def deserialize_post(data: dict[str, Any]) -> Post:
-    """
-    Restores domain Post from Redis Stream fields.
-    """
 
     payload_raw = data["payload"]
 
